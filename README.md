@@ -1,4 +1,4 @@
-# Bike Sharing Dashboard ✨
+# Bike Sharing Dashboard
 
 Dashboard interaktif untuk analisis data peminjaman sepeda (*Bike Sharing Dataset*), mencakup eksplorasi faktor musim, cuaca, jam sibuk, perbandingan tipe pengguna (*casual* vs *registered*), serta analisis lanjutan (RFM & Binning Waktu).
 
