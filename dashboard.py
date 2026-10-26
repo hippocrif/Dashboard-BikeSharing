@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import seaborn as sns
 import streamlit as st
@@ -25,11 +24,6 @@ WEATHER_ORDER = [
     "Severe Weather",
 ]
 TIME_ORDER = ["Rush Hour (Pagi & Sore)", "Jam Kerja / Siang", "Malam / Dini Hari"]
-DAY_NAMES = {
-    0: "Senin", 1: "Selasa", 2: "Rabu", 3: "Kamis",
-    4: "Jumat", 5: "Sabtu", 6: "Minggu",
-}
-DAY_ORDER = list(DAY_NAMES.values())
 
 SEASON_MAP = {1: "Spring", 2: "Summer", 3: "Fall", 4: "Winter"}
 WEATHER_MAP = {
@@ -40,11 +34,10 @@ WEATHER_MAP = {
 }
 WORKINGDAY_MAP = {0: "Weekend/Holiday", 1: "Working Day"}
 
-SEASON_COLORS = {"Spring": "#2E8B57", "Summer": "#FFA500", "Fall": "#CD5C5C", "Winter": "#4682B4"}
-COLOR_CASUAL = "#87CEEB"
-COLOR_REGISTERED = "#1E90FF"
-COLOR_WORKING = "#1E90FF"
 COLOR_HOLIDAY = "#FF6347"
+COLOR_WORKING = "#1E90FF"
+COLOR_CASUAL = "#FF8C00"
+COLOR_REGISTERED = "#1E90FF"
 
 
 # Memuat & menyiapkan data
@@ -56,7 +49,7 @@ def find_file(name: str) -> Path:
 
 
 def hr_group(hr: int) -> str:
-    """Binning kategori jam"""
+    """Binning kategori jam (Analisis Lanjutan)"""
     if 7 <= hr <= 9 or 17 <= hr <= 19:
         return "Rush Hour (Pagi & Sore)"
     elif 10 <= hr <= 16:
@@ -73,7 +66,6 @@ def prepare(df: pd.DataFrame) -> pd.DataFrame:
         df["weather_label"] = df["weathersit"].map(WEATHER_MAP)
     if "workingday_label" not in df:
         df["workingday_label"] = df["workingday"].map(WORKINGDAY_MAP)
-    df["day_name"] = df["dteday"].dt.dayofweek.map(DAY_NAMES)
     if "hr" in df:
         df["time_category"] = df["hr"].apply(hr_group)
     return df
@@ -87,100 +79,135 @@ def load_data():
 
 
 def fmt(x) -> str:
-    """Format angka dengan pemisah ribuan titik (gaya Indonesia)."""
+    """Bilangan bulat dengan pemisah ribuan titik (gaya Indonesia)."""
     return f"{x:,.0f}".replace(",", ".")
+
+
+def fmt1(x) -> str:
+    """Satu desimal, gaya Indonesia (titik ribuan, koma desimal)."""
+    return f"{x:,.1f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 def fmt_hr(h: int) -> str:
     return f"{int(h):02d}:00"
 
 
+# Teks insight (sesuai notebook)
+Q1_TEXT = (
+    "Bagaimana perbedaan rata-rata penyewaan sepeda harian (cnt) berdasarkan musim (season) dan kondisi cuaca "
+    "(weathersit) sepanjang tahun 2011–2012, serta pada jam berapa (hr) puncak peminjaman terjadi pada hari kerja "
+    "dibanding hari libur untuk optimalisasi distribusi unit?"
+)
+Q2_TEXT = (
+    "Bagaimana perbandingan rata-rata peminjaman per jam antara pengguna kasual (casual) dan terdaftar "
+    "(registered) sepanjang tahun 2011–2012, sebagai dasar perancangan program loyalitas dan strategi konversi "
+    "pelanggan yang tepat sasaran?"
+)
+
 INSIGHT_GATHERING = [
-    "Dataset berhasil dimuat ke dalam dua dataframe, yaitu `day_df` (peminjaman sepeda harian) dan "
-    "`hour_df` (peminjaman per jam). Keduanya memiliki variabel yang sama seperti musim (`season`), "
-    "kondisi cuaca (`weathersit`), suhu (`temp`), kelembapan (`hum`), kecepatan angin (`windspeed`), "
+    "Dataset berhasil dimuat ke dalam dua dataframe, yaitu `day_df` yang berisi data peminjaman sepeda harian dan "
+    "`hour_df` yang berisi data peminjaman per jam. Kedua dataset memiliki variabel yang sama seperti musim "
+    "(`season`), kondisi cuaca (`weathersit`), suhu (`temp`), kelembapan (`hum`), kecepatan angin (`windspeed`), "
     "serta jumlah peminjaman (`cnt`).",
     "Pada lima baris pertama `day_df`, jumlah peminjaman harian (`cnt`) berkisar antara 801 hingga 1.600 "
-    "per hari. Pada `hour_df`, `cnt` bervariasi dari 1 hingga 40 pada beberapa jam pertama 1 Januari 2011, "
-    "menunjukkan adanya fluktuasi aktivitas peminjaman berdasarkan waktu.",
+    "peminjaman per hari. Sementara itu, pada `hour_df`, jumlah peminjaman per jam (`cnt`) bervariasi dari 1 hingga "
+    "40 peminjaman pada beberapa jam pertama tanggal 1 Januari 2011, menunjukkan adanya fluktuasi aktivitas "
+    "peminjaman berdasarkan waktu.",
 ]
 INSIGHT_ASSESSING = [
-    "Dataset terdiri dari 731 observasi harian dan 17.379 observasi per jam. Tidak ditemukan missing value "
-    "maupun data duplikat pada `day_df` dan `hour_df`, sehingga kelengkapan dan konsistensi data sudah baik.",
-    "Jumlah peminjaman per jam (`cnt`) berkisar antara 1 hingga 977, menunjukkan variasi aktivitas yang "
-    "signifikan dan potensi adanya jam sibuk tertentu. Kolom `dteday` masih bertipe object dan beberapa "
-    "variabel kategorikal berupa kode numerik, sehingga perlu penyesuaian tipe data dan pemahaman kode kategori.",
+    "Dataset terdiri dari 731 observasi harian dan 17.379 observasi per jam. Tidak ditemukan missing value maupun "
+    "data duplikat pada `day_df` dan `hour_df`, sehingga kelengkapan dan konsistensi data secara umum sudah baik.",
+    "Jumlah peminjaman per jam (`cnt`) berkisar antara 1 hingga 977 peminjaman, menunjukkan variasi aktivitas yang "
+    "signifikan dan potensi adanya jam sibuk tertentu. Selain itu, kolom `dteday` masih bertipe object dan beberapa "
+    "variabel kategorikal menggunakan kode numerik, sehingga diperlukan penyesuaian tipe data dan pemahaman kode "
+    "kategori untuk memudahkan eksplorasi serta interpretasi hasil analisis.",
+]
+STEPS_TO_TAKE = [
+    "Mengubah kolom `dteday` dari tipe data object menjadi datetime agar analisis berbasis waktu (harian, bulanan, "
+    "dan tahunan) lebih mudah dilakukan.",
+    "Melakukan validasi serta transformasi kolom kategorikal seperti `season`, `weathersit`, `weekday`, dan `yr` "
+    "menjadi label yang lebih informatif agar hasil visualisasi dan analisis lebih mudah dipahami.",
 ]
 INSIGHT_CLEANING = [
-    "Kolom `dteday` diubah menjadi datetime, sehingga data siap untuk analisis berbasis waktu "
-    "(harian, bulanan, dan tahunan).",
-    "Kolom `season_label`, `weather_label`, dan `workingday_label` ditambahkan agar kode numerik lebih mudah "
-    "dipahami dan diinterpretasikan pada eksplorasi dan visualisasi.",
+    "Proses pembersihan data berhasil dilakukan dengan mengubah kolom `dteday` menjadi format datetime, sehingga "
+    "data kini lebih siap untuk analisis berbasis waktu, seperti tren harian, bulanan, maupun tahunan.",
+    "Penambahan kolom kategorikal berupa `season_label`, `weather_label`, dan `workingday_label` membuat informasi "
+    "yang sebelumnya berbentuk kode numerik menjadi lebih mudah dipahami dan diinterpretasikan, sehingga "
+    "mempermudah proses eksplorasi data serta visualisasi pada tahap analisis selanjutnya.",
 ]
 INSIGHT_EDA = [
-    "Kombinasi musim **Fall** dengan cuaca **Clear/Partly Cloudy** menghasilkan rata-rata peminjaman tertinggi "
-    "(sekitar **5.878** per hari), sedangkan **Spring** dengan **Light Snow/Rain** terendah (sekitar **935** per hari). "
-    "Cuaca cerah atau sedikit berawan menghasilkan peminjaman lebih tinggi dibanding hujan atau salju ringan, "
-    "sehingga musim dan cuaca merupakan faktor penting dalam penggunaan layanan.",
-    "Pada data per jam, peminjaman di hari libur (Weekend/Holiday) meningkat mulai pagi dan terus bertambah "
-    "hingga menjelang siang. Pengguna terdaftar (*registered*) secara konsisten lebih tinggi dibanding pengguna "
-    "kasual (*casual*), sehingga menjadi kontributor utama total peminjaman.",
+    "Musim Gugur (**Fall**) dan cuaca **Cerah/Berawan** mencatatkan rata-rata peminjaman harian tertinggi "
+    "(mencapai **5.644** dan **4.876** unit/hari), sedangkan cuaca buruk merosotkan peminjaman hingga **1.803** "
+    "unit/hari. Selain itu, peminjaman mencapai lonjakan puncak pada jam berangkat kerja (pukul 07:00–08:00).",
+    "Pengguna terdaftar (*registered*) mendominasi total peminjaman secara signifikan dibanding pengguna kasual "
+    "(*casual*), dengan puncak peminjaman pada jam 08:00 (**337** unit vs **21** unit). Hal ini menunjukkan bahwa "
+    "pengguna registered didominasi oleh pekerja komuter harian, sementara pengguna casual lebih aktif pada siang "
+    "hingga sore hari untuk aktivitas kasual/rekreasi.",
 ]
 INSIGHT_Q1 = [
-    "Rata-rata peminjaman tertinggi terjadi pada musim **Fall** dengan cuaca **Clear/Partly Cloudy**, disusul "
-    "**Summer** dan **Winter** dengan cuaca serupa. Cuaca **Light Snow/Rain** secara konsisten menghasilkan "
-    "peminjaman jauh lebih rendah di seluruh musim. Pengelola dapat menyiapkan lebih banyak unit pada musim "
-    "dan cuaca yang mendukung aktivitas bersepeda.",
-    "Pada **hari kerja** terdapat dua puncak sangat tinggi, yaitu sekitar pukul **08.00** dan **17.00–18.00** "
-    "(aktivitas komuter). Pada **hari libur**, peminjaman naik bertahap dan puncaknya pada **12.00–15.00**.",
+    "Musim Gugur (**Fall**) dan kondisi cuaca **Cerah/Berawan** (Clear/Partly Cloudy) menghasilkan rata-rata "
+    "peminjaman tertinggi harian, sedangkan cuaca buruk (Light Snow/Rain) menurunkan peminjaman secara drastis.",
+    "Pola peminjaman pada **hari kerja** (Working Day) memiliki dua puncak signifikan pada jam komuter berangkat "
+    "dan pulang kerja (pukul **08:00** dan **17:00–18:00**), sementara peminjaman pada **hari libur** "
+    "(Weekend/Holiday) terdistribusi lebih merata pada siang hingga sore hari (pukul **12:00–16:00**).",
 ]
 INSIGHT_Q2 = [
-    "Pengguna terdaftar (*registered*) mendominasi peminjaman, terutama pada jam sibuk hari kerja, sedangkan "
-    "pengguna kasual (*casual*) lebih aktif pada siang hingga sore hari dan saat hari libur.",
-    "Pola ini menunjukkan perbedaan perilaku yang dapat dimanfaatkan untuk optimalisasi distribusi sepeda dan "
-    "penyusunan program loyalitas pelanggan yang lebih tepat sasaran.",
+    "Pengguna terdaftar (*Registered*) secara dominan mendominasi volume peminjaman sepeda dengan puncak tajam pada "
+    "jam kerja pagi dan sore hari (pukul **08:00** dan **17:00**).",
+    "Sebaliknya, tren peminjaman pengguna kasual (*Casual*) bergerak lebih landai dengan peningkatan bertahap mulai "
+    "siang hingga sore hari (pukul **12:00–17:00**), yang mengindikasikan bahwa segmen pengguna terdaftar "
+    "berorientasi pada mobilitas harian/rutinitas, sedangkan pengguna kasual berorientasi pada aktivitas rekreasi.",
 ]
 INSIGHT_ADV = [
-    "Binning waktu: kategori **Rush Hour (Pagi & Sore)** memiliki rata-rata peminjaman tertinggi, sekitar "
-    "**332** per jam, jauh di atas Jam Kerja/Siang (**242** per jam) dan Malam/Dini Hari (**77** per jam). "
-    "Ini memperkuat temuan bahwa permintaan tertinggi terjadi pada jam mobilitas utama, sehingga ketersediaan "
-    "unit perlu diprioritaskan pada rentang tersebut.",
-    "RFM bulanan: total peminjaman memuncak pada **September 2012** (lebih dari 218 ribu peminjaman, rata-rata "
-    "lebih dari 7.285 per hari), lalu turun bertahap hingga **Desember 2012** (sekitar 123 ribu peminjaman, "
-    "rata-rata 3.991 per hari). Pola ini mengindikasikan pengaruh musiman yang perlu dipertimbangkan dalam "
-    "perencanaan operasional dan strategi bisnis.",
+    "Segmentasi jam menunjukkan bahwa kategori **Rush Hour (Pagi & Sore)** mencatatkan rata-rata peminjaman "
+    "tertinggi sebesar **331** unit/jam, diikuti oleh Jam Kerja / Siang sebesar **241** unit/jam. Sebaliknya, "
+    "kategori Malam / Dini Hari berada pada tingkat terendah yaitu **77** unit/jam. Hal ini menegaskan bahwa "
+    "kebutuhan alokasi dan pemeliharaan unit armada sepeda berada pada titik paling kritis pada waktu berangkat "
+    "dan pulang kerja.",
+    "Performa penyewaan mencapai puncak tertinggi pada bulan **September 2012** dengan rata-rata harian sebesar "
+    "**7.285** unit/hari (Monetary Total: 218.573 unit). Namun, memasuki kuartal keempat (Oktober hingga Desember "
+    "2012), terjadi penurunan kinerja harian yang cukup signifikan secara bertahap hingga menyentuh angka "
+    "**3.990** unit/hari pada bulan Desember, yang dipengaruhi oleh faktor penurunan suhu dan perubahan musim "
+    "menjelang akhir tahun.",
 ]
 CONCLUSION_Q1 = (
-    "Jumlah peminjaman sepeda sangat dipengaruhi oleh musim, kondisi cuaca, dan waktu peminjaman. Musim Fall dengan "
-    "cuaca Clear/Partly Cloudy menghasilkan rata-rata peminjaman tertinggi, sedangkan Light Snow/Rain secara "
-    "konsisten terendah pada seluruh musim. Pada hari kerja ada dua puncak utama, sekitar pukul 08.00 dan "
-    "17.00–18.00 yang mencerminkan perjalanan pergi dan pulang kerja. Pada hari libur, puncak terjadi pada siang "
-    "hingga sore hari. Permintaan sepeda meningkat ketika kondisi lingkungan mendukung aktivitas luar ruang dan "
-    "pada jam dengan mobilitas masyarakat yang tinggi."
+    "Penyewaan sepeda sangat dipengaruhi oleh faktor musim, cuaca, dan jam operasional, di mana Musim Gugur (Fall) "
+    "dan cuaca Cerah/Berawan (Clear/Partly Cloudy) mencatatkan rata-rata peminjaman harian tertinggi (sebesar "
+    "5.644 dan 4.876 unit/hari), sedangkan cuaca buruk (Light Snow/Rain) merosotkan peminjaman hingga 1.803 "
+    "unit/hari. Selain itu, peminjaman pada hari kerja mengalami lonjakan tajam pada jam berangkat dan pulang kerja "
+    "(pukul 08:00 sebesar 477 unit/jam dan pukul 17:00–18:00 sebesar 525 unit/jam), sementara pada hari libur "
+    "puncak peminjaman bergeser lebih merata pada siang hingga sore hari (pukul 12:00–16:00 sekitar 370 unit/jam)."
 )
 CONCLUSION_Q2 = (
-    "Pengguna terdaftar (registered) mendominasi jumlah peminjaman pada hampir seluruh periode waktu dan menjadi "
-    "kontributor utama total penyewaan. Mereka menunjukkan pola yang sangat kuat pada jam sibuk hari kerja, "
-    "terutama pagi dan sore, yang mengindikasikan penggunaan untuk komuter. Pengguna kasual lebih aktif pada "
-    "siang hingga sore hari dan cenderung meningkat pada hari libur. Kedua kelompok memiliki kebutuhan dan "
-    "karakteristik berbeda sehingga memerlukan pendekatan layanan dan promosi yang berbeda pula."
+    "Pengguna terdaftar (registered) menjadi kontributor utama peminjaman yang secara signifikan mendominasi "
+    "seluruh periode waktu dengan pola komuter harian yang kuat pada jam 08:00 (337 unit/jam) dan jam 17:00 "
+    "(387 unit/jam). Sebaliknya, pengguna kasual (casual) memiliki tren peminjaman yang lebih landai dengan puncak "
+    "pada siang hingga sore hari (pukul 12:00–16:00 sekitar 68–75 unit/jam), yang menunjukkan perbedaan orientasi "
+    "penggunaan antara mobilitas rutinitas harian (registered) dan aktivitas rekreasi (casual)."
 )
 CONCLUSION_ADV = (
-    "Kategori Rush Hour (Pagi & Sore) memiliki rata-rata peminjaman tertinggi dibanding kategori waktu lain. "
-    "Analisis RFM bulanan memperlihatkan puncak peminjaman pada kuartal ketiga 2012 dan penurunan menjelang akhir "
-    "tahun. Ini mengindikasikan pengaruh pola mobilitas harian dan faktor musiman dalam perencanaan operasional."
+    "Analisis binning waktu menunjukkan bahwa kategori Rush Hour (Pagi & Sore) mencatatkan rata-rata penyewaan "
+    "tertinggi sebesar 331 unit/jam, jauh melampaui kategori Jam Kerja/Siang (241 unit/jam) dan Malam/Dini Hari "
+    "(77 unit/jam). Sementara itu, analisis RFM adaptif bulanan menunjukkan kinerja peminjaman mencapai puncak "
+    "tertinggi pada bulan September 2012 (7.285 unit/hari), sebelum mengalami penurunan bertahap hingga titik "
+    "terendah pada bulan Desember 2012 (3.990 unit/hari) akibat perubahan musim dingin."
 )
 RECOMMENDATIONS = [
-    "Menambah jumlah unit sepeda dan memastikan ketersediaan armada pada jam sibuk (**07.00–09.00** dan "
-    "**17.00–19.00**), terutama pada hari kerja ketika permintaan mencapai tingkat tertinggi.",
-    "Mengoptimalkan distribusi dan pemeliharaan armada pada musim dengan permintaan tinggi, khususnya **Fall** "
-    "dan **Summer**, serta menyesuaikan kapasitas operasional saat cuaca kurang mendukung.",
-    "Mengembangkan program loyalitas bagi pengguna kasual, seperti diskon berlangganan atau poin reward, untuk "
-    "mendorong mereka beralih menjadi pengguna terdaftar yang lebih aktif dan konsisten.",
-    "Menyusun kampanye promosi khusus pada periode akhir tahun atau saat permintaan menurun untuk menjaga "
-    "tingkat penggunaan dan meningkatkan jumlah peminjaman.",
-    "Memanfaatkan perbedaan perilaku pengguna dengan layanan yang lebih personal, seperti **paket komuter** "
-    "untuk pengguna terdaftar dan **paket rekreasi akhir pekan** untuk pengguna kasual.",
+    "**Optimalisasi Alokasi Armada pada Jam Sibuk (Rush Hour):** Memaksimalkan ketersediaan armada di stasiun area "
+    "perkantoran pada jam 07:00–09:00 dan 17:00–19:00 di hari kerja, serta meredistribusi unit ke area rekreasi "
+    "pada jam 12:00–16:00 saat akhir pekan.",
+    "**Manajemen Operasional Berbasis Musim dan Cuaca:** Memaksimalkan unit siap pakai pada musim puncak (Musim "
+    "Gugur dan Panas), serta menjadwalkan perawatan berkala (maintenance) secara intensif pada Musim Semi dan saat "
+    "cuaca buruk ketika peminjaman sedang rendah.",
+    "**Strategi Konversi Pengguna Kasual ke Terdaftar:** Mengembangkan program loyalitas dan promosi konversi bagi "
+    "pengguna casual, seperti penawaran diskon paket membership komuter harian saat akhir pekan ketika aktivitas "
+    "pengguna casual sedang tinggi.",
+    "**Kampanye Promosi Penyeimbang Musim (End-of-Year Campaign):** Menyusun strategi promosi penyesuaian tarif "
+    "atau program event khusus pada kuartal akhir tahun (Oktober–Desember) untuk mempertahankan tingkat peminjaman "
+    "di tengah penurunan suhu dan perubahan musim.",
+    "**Personalisasi Layanan Berdasarkan Segmen Pengguna:** Membedakan penawaran produk layanan, seperti Commuter "
+    "Pass berlangganan hemat untuk pengguna registered pada hari kerja, dan Weekend Pass / Leisure Pass untuk "
+    "pengguna casual pada hari libur.",
 ]
 
 
@@ -226,7 +253,11 @@ with st.sidebar:
     selected_weathers = st.multiselect("Kondisi cuaca", weathers, default=weathers)
 
     st.markdown("---")
-    st.markdown("**Nama:** Ilham Maulana  \n**ID Dicoding:** ds009b6y0786")
+    st.markdown(
+        "**Nama:** Ilham Maulana  \n"
+        "**Email:** ilhamaulana1001@gmail.com  \n"
+        "**ID Dicoding:** ilham_maulana_hippo"
+    )
 
 
 def apply_filters(df: pd.DataFrame) -> pd.DataFrame:
@@ -274,7 +305,7 @@ tab_data, tab_q1, tab_q2, tab_adv, tab_conc = st.tabs(
     ]
 )
 
-
+# Tab 0: Tahapan data
 with tab_data:
     st.subheader("Ringkasan Tahapan Analisis Data")
     st.caption("Insight di bawah ini merupakan hasil dari notebook (seluruh periode 2011–2012).")
@@ -285,6 +316,8 @@ with tab_data:
         show_bullets(INSIGHT_GATHERING)
         st.markdown("#### Assessing Data")
         show_bullets(INSIGHT_ASSESSING)
+        st.markdown("**Steps to Take:**")
+        show_bullets(STEPS_TO_TAKE)
     with c2:
         st.markdown("#### Cleaning Data")
         show_bullets(INSIGHT_CLEANING)
@@ -292,94 +325,93 @@ with tab_data:
         show_bullets(INSIGHT_EDA)
 
     st.markdown("#### Pertanyaan Bisnis")
-    st.info(
-        "**Pertanyaan 1:** Bagaimana tren peminjaman sepeda harian (cnt) berdasarkan musim (season) dan kondisi "
-        "cuaca (weathersit) sepanjang tahun 2011–2012, serta pada jam berapa (hr) puncak peminjaman terjadi pada "
-        "hari kerja dibanding hari libur untuk optimalisasi distribusi unit?"
-    )
-    st.info(
-        "**Pertanyaan 2:** Bagaimana perbedaan perilaku peminjaman antara pengguna kasual (casual) dan terdaftar "
-        "(registered) berdasarkan waktu (harian & jam sibuk) untuk merancang program loyalitas pelanggan yang "
-        "tepat sasaran?"
-    )
+    st.info(f"**Pertanyaan 1:** {Q1_TEXT}")
+    st.info(f"**Pertanyaan 2:** {Q2_TEXT}")
 
     with st.expander("Lihat data (sesuai filter)"):
         st.markdown("**Data harian**")
-        st.dataframe(day_df.head(100), use_container_width=True)
+        st.dataframe(day_df.head(100))
         st.markdown("**Data per jam**")
-        st.dataframe(hour_df.head(100), use_container_width=True)
+        st.dataframe(hour_df.head(100))
 
 # Tab 1: Pertanyaan 1
 with tab_q1:
     st.subheader("Pertanyaan 1: Musim, Cuaca, dan Jam Puncak")
+    st.markdown(Q1_TEXT)
 
-    hourly_wd = hour_df.groupby(["workingday_label", "hr"])["cnt"].mean().reset_index()
-    peak = {}
-    for label in ("Working Day", "Weekend/Holiday"):
-        sub = hourly_wd[hourly_wd["workingday_label"] == label]
-        if not sub.empty:
-            peak[label] = sub.loc[sub["cnt"].idxmax()]
-
-    sw = day_df.groupby(["season_label", "weather_label"])["cnt"].mean().reset_index()
-    best = sw.loc[sw["cnt"].idxmax()]
-    worst = sw.loc[sw["cnt"].idxmin()]
-
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Kombinasi Tertinggi", f"{best['season_label']} • {best['weather_label']}",
-              f"{fmt(best['cnt'])} /hari", delta_color="off")
-    m2.metric("Kombinasi Terendah", f"{worst['season_label']} • {worst['weather_label']}",
-              f"{fmt(worst['cnt'])} /hari", delta_color="off")
-    if "Working Day" in peak:
-        m3.metric("Jam Puncak Hari Kerja", fmt_hr(peak["Working Day"]["hr"]),
-                  f"{fmt(peak['Working Day']['cnt'])} /jam", delta_color="off")
-    if "Weekend/Holiday" in peak:
-        m4.metric("Jam Puncak Hari Libur", fmt_hr(peak["Weekend/Holiday"]["hr"]),
-                  f"{fmt(peak['Weekend/Holiday']['cnt'])} /jam", delta_color="off")
-
-    # --- Grafik 1 ---
-    st.markdown("##### Tren Peminjaman Harian 2011–2012 per Musim")
-    trend = day_df.sort_values("dteday")
-    fig, ax = plt.subplots(figsize=(14, 4.5))
-    sns.scatterplot(
-        data=trend, x="dteday", y="cnt", hue="season_label",
-        hue_order=[s for s in SEASON_ORDER if s in selected_seasons],
-        palette=SEASON_COLORS,
-        s=18, alpha=0.7, ax=ax,
+    season_summary = (
+        day_df.groupby("season_label")["cnt"].mean()
+        .reindex(SEASON_ORDER).dropna().reset_index()
     )
-    ax.plot(trend["dteday"], trend["cnt"].rolling(7, min_periods=7).mean(),
-            color="black", linewidth=1.5, label="Rata-rata bergerak 7 hari")
-    ax.set_title("Tren Peminjaman Harian dan Rata-rata Bergerak 7 Hari", fontsize=12, fontweight="bold")
-    ax.set_xlabel("Tanggal", fontsize=10)
-    ax.set_ylabel("Jumlah Peminjaman (Unit)", fontsize=10)
-    ax.legend(title="Musim", loc="upper left", fontsize=8)
-    plt.tight_layout()
-    st.pyplot(fig)
-    plt.close(fig)
+    weather_summary = (
+        day_df.groupby("weather_label")["cnt"].mean()
+        .reindex(WEATHER_ORDER).dropna().reset_index()
+    )
+    hourly_workingday = (
+        hour_df.groupby(["workingday_label", "hr"])["cnt"].mean().reset_index()
+    )
 
-    # --- Grafik 2 & 3 ---
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(16, 6))
+    best_season = season_summary.loc[season_summary["cnt"].idxmax()]
+    best_weather = weather_summary.loc[weather_summary["cnt"].idxmax()]
+    worst_weather = weather_summary.loc[weather_summary["cnt"].idxmin()]
 
+    a1, a2, a3 = st.columns(3)
+    a1.metric("Musim Tertinggi", best_season["season_label"],
+              f"{fmt1(best_season['cnt'])} unit/hari", delta_color="off")
+    a2.metric("Cuaca Tertinggi", best_weather["weather_label"],
+              f"{fmt1(best_weather['cnt'])} unit/hari", delta_color="off")
+    a3.metric("Cuaca Terendah", worst_weather["weather_label"],
+              f"{fmt1(worst_weather['cnt'])} unit/hari", delta_color="off")
+
+    wd = hourly_workingday[hourly_workingday["workingday_label"] == "Working Day"]
+    hd = hourly_workingday[hourly_workingday["workingday_label"] == "Weekend/Holiday"]
+    b1, b2 = st.columns(2)
+    if not wd.empty:
+        morning = wd[wd["hr"] < 12]
+        evening = wd[wd["hr"] >= 12]
+        if not morning.empty and not evening.empty:
+            pm = morning.loc[morning["cnt"].idxmax()]
+            pe = evening.loc[evening["cnt"].idxmax()]
+            b1.metric("Jam Puncak Hari Kerja (Pagi / Sore)",
+                      f"{fmt_hr(pm['hr'])} / {fmt_hr(pe['hr'])}",
+                      f"{fmt(pm['cnt'])} / {fmt(pe['cnt'])} unit/jam", delta_color="off")
+    if not hd.empty:
+        ph = hd.loc[hd["cnt"].idxmax()]
+        b2.metric("Jam Puncak Hari Libur", fmt_hr(ph["hr"]),
+                  f"{fmt1(ph['cnt'])} unit/jam", delta_color="off")
+
+    fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(20, 5))
+
+    # Rata-rata peminjaman berdasarkan musim
     sns.barplot(
-        data=day_df, x="season_label", y="cnt", hue="weather_label",
-        order=[s for s in SEASON_ORDER if s in selected_seasons],
-        hue_order=[w for w in WEATHER_ORDER if w in selected_weathers],
-        palette="Blues_d", ax=axes[0], errorbar=None,
+        data=season_summary, x="season_label", y="cnt",
+        hue="season_label", palette="Blues_d", legend=False, ax=axes[0],
     )
-    axes[0].set_title("Rata-rata Peminjaman Harian Berdasarkan Musim & Cuaca", fontsize=12, fontweight="bold")
+    axes[0].set_title("Rata-rata Peminjaman Harian per Musim", fontsize=12, fontweight="bold")
     axes[0].set_xlabel("Musim", fontsize=10)
-    axes[0].set_ylabel("Jumlah Peminjaman (Unit)", fontsize=10)
-    axes[0].legend(title="Cuaca", fontsize=8)
+    axes[0].set_ylabel("Rata-rata Peminjaman (Unit)", fontsize=10)
 
-    sns.lineplot(
-        data=hour_df, x="hr", y="cnt", hue="workingday_label",
-        palette={"Working Day": COLOR_WORKING, "Weekend/Holiday": COLOR_HOLIDAY},
-        marker="o", ax=axes[1],
+    # Rata-rata peminjaman berdasarkan cuaca
+    sns.barplot(
+        data=weather_summary, x="weather_label", y="cnt",
+        hue="weather_label", palette="Reds_d", legend=False, ax=axes[1],
     )
-    axes[1].set_title("Pola Peminjaman Per Jam: Hari Kerja vs Hari Libur", fontsize=12, fontweight="bold")
-    axes[1].set_xlabel("Jam (00:00 - 23:00)", fontsize=10)
-    axes[1].set_ylabel("Rata-rata Peminjaman Per Jam", fontsize=10)
-    axes[1].set_xticks(range(0, 24))
-    axes[1].legend(title="Tipe Hari", fontsize=8)
+    axes[1].set_title("Rata-rata Peminjaman Harian per Cuaca", fontsize=12, fontweight="bold")
+    axes[1].set_xlabel("Kondisi Cuaca", fontsize=10)
+    axes[1].set_ylabel("Rata-rata Peminjaman (Unit)", fontsize=10)
+    axes[1].tick_params(axis="x", rotation=15)
+
+    # Pola peminjaman per jam: hari kerja vs hari libur
+    sns.lineplot(
+        data=hourly_workingday, x="hr", y="cnt", hue="workingday_label",
+        palette={"Weekend/Holiday": COLOR_HOLIDAY, "Working Day": COLOR_WORKING},
+        marker="o", ax=axes[2],
+    )
+    axes[2].set_title("Pola Jam Puncak: Hari Kerja vs Libur", fontsize=12, fontweight="bold")
+    axes[2].set_xlabel("Jam (00:00 - 23:00)", fontsize=10)
+    axes[2].set_ylabel("Rata-rata Peminjaman Per Jam", fontsize=10)
+    axes[2].set_xticks(range(0, 24, 2))
+    axes[2].legend(title="Tipe Hari", fontsize=8)
 
     plt.tight_layout()
     st.pyplot(fig)
@@ -391,69 +423,50 @@ with tab_q1:
 # Tab 2: Pertanyaan 2
 with tab_q2:
     st.subheader("Pertanyaan 2: Pengguna Kasual vs Terdaftar")
+    st.markdown(Q2_TEXT)
 
-    hourly_user = hour_df.groupby(["workingday_label", "hr"])[["casual", "registered"]].mean().reset_index()
+    user_type_hourly = hour_df.groupby("hr")[["casual", "registered"]].mean().reset_index()
 
-    def peak_hr(label, col):
-        sub = hourly_user[hourly_user["workingday_label"] == label]
-        return None if sub.empty else int(sub.loc[sub[col].idxmax(), "hr"])
+    reg_morning = user_type_hourly[user_type_hourly["hr"] < 12]
+    reg_evening = user_type_hourly[user_type_hourly["hr"] >= 12]
+    cas_peak = user_type_hourly.loc[user_type_hourly["casual"].idxmax()]
+    ratio = user_type_hourly["registered"].mean() / max(user_type_hourly["casual"].mean(), 1e-9)
 
-    p_reg_wd = peak_hr("Working Day", "registered")
-    p_cas_wd = peak_hr("Working Day", "casual")
-    p_cas_hd = peak_hr("Weekend/Holiday", "casual")
-    cas_share_wd = day_df[day_df["workingday"] == 1]["casual"].sum() / max(day_df[day_df["workingday"] == 1]["cnt"].sum(), 1) * 100
-    cas_share_hd = day_df[day_df["workingday"] == 0]["casual"].sum() / max(day_df[day_df["workingday"] == 0]["cnt"].sum(), 1) * 100
+    c1, c2, c3, c4 = st.columns(4)
+    if not reg_morning.empty:
+        pr = reg_morning.loc[reg_morning["registered"].idxmax()]
+        c1.metric("Puncak Registered (Pagi)", fmt_hr(pr["hr"]),
+                  f"{fmt1(pr['registered'])} unit/jam", delta_color="off")
+    if not reg_evening.empty:
+        ps = reg_evening.loc[reg_evening["registered"].idxmax()]
+        c2.metric("Puncak Registered (Sore)", fmt_hr(ps["hr"]),
+                  f"{fmt1(ps['registered'])} unit/jam", delta_color="off")
+    c3.metric("Puncak Casual", fmt_hr(cas_peak["hr"]),
+              f"{fmt1(cas_peak['casual'])} unit/jam", delta_color="off")
+    c4.metric("Registered : Casual", f"{ratio:.1f} : 1", "rata-rata per jam", delta_color="off")
 
-    q1c, q2c, q3c, q4c = st.columns(4)
-    q1c.metric("Puncak Registered (Hari Kerja)", fmt_hr(p_reg_wd) if p_reg_wd is not None else "-")
-    q2c.metric("Puncak Casual (Hari Kerja)", fmt_hr(p_cas_wd) if p_cas_wd is not None else "-")
-    q3c.metric("Puncak Casual (Hari Libur)", fmt_hr(p_cas_hd) if p_cas_hd is not None else "-")
-    q4c.metric("Porsi Casual: Libur vs Kerja", f"{cas_share_hd:.1f}%", f"{cas_share_hd - cas_share_wd:+.1f} poin vs hari kerja",
-               delta_color="off")
-
-    # --- Grafik 1: jam sibuk casual vs registered ---
-    st.markdown("##### Distribusi Jam Peminjaman: Casual vs Registered")
-    melted = pd.melt(
-        hour_df, id_vars=["hr", "workingday_label"],
-        value_vars=["casual", "registered"],
+    user_type_melted = pd.melt(
+        user_type_hourly, id_vars=["hr"], value_vars=["casual", "registered"],
         var_name="User_Type", value_name="Avg_Rentals",
     )
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(16, 5), sharey=True)
-    for ax, (label, title) in zip(
-        axes, [("Working Day", "Hari Kerja"), ("Weekend/Holiday", "Hari Libur")]
-    ):
-        sub = melted[melted["workingday_label"] == label]
-        sns.lineplot(
-            data=sub, x="hr", y="Avg_Rentals", hue="User_Type",
-            hue_order=["casual", "registered"],
-            palette=[COLOR_CASUAL, COLOR_REGISTERED], marker="o", ax=ax,
-        )
-        ax.set_title(f"Casual vs Registered - {title}", fontsize=12, fontweight="bold")
-        ax.set_xlabel("Jam (00:00 - 23:00)", fontsize=10)
-        ax.set_ylabel("Rata-rata Peminjaman per Jam", fontsize=10)
-        ax.set_xticks(range(0, 24))
-        ax.tick_params(axis="x", labelsize=8)
-        ax.legend(title="Tipe Pengguna", fontsize=8)
-    plt.tight_layout()
-    st.pyplot(fig)
-    plt.close(fig)
+    user_type_melted["User_Type"] = user_type_melted["User_Type"].map({
+        "casual": "Pengguna Kasual (Casual)",
+        "registered": "Pengguna Terdaftar (Registered)",
+    })
 
-    # --- Grafik 2: perilaku harian ---
-    st.markdown("##### Perilaku Harian: Rata-rata Peminjaman per Hari dalam Seminggu")
-    weekday = (
-        day_df.groupby("day_name")[["casual", "registered"]].mean()
-        .reindex(DAY_ORDER).dropna(how="all").reset_index()
-        .melt(id_vars="day_name", var_name="User_Type", value_name="Avg_Rentals")
+    fig, ax = plt.subplots(figsize=(12, 5))
+    sns.lineplot(
+        data=user_type_melted, x="hr", y="Avg_Rentals", hue="User_Type",
+        hue_order=["Pengguna Kasual (Casual)", "Pengguna Terdaftar (Registered)"],
+        palette=[COLOR_CASUAL, COLOR_REGISTERED], linewidth=2.5, marker="o", ax=ax,
     )
-    fig, ax = plt.subplots(figsize=(12, 4.5))
-    sns.barplot(
-        data=weekday, x="day_name", y="Avg_Rentals", hue="User_Type",
-        hue_order=["casual", "registered"], palette=[COLOR_CASUAL, COLOR_REGISTERED], ax=ax,
-    )
-    ax.set_title("Rata-rata Peminjaman Harian: Casual vs Registered", fontsize=13, fontweight="bold")
-    ax.set_xlabel("Hari", fontsize=11)
-    ax.set_ylabel("Rata-rata Peminjaman per Hari", fontsize=11)
-    ax.legend(title="Tipe Pengguna", fontsize=8)
+    ax.set_title("Perbandingan Rata-rata Peminjaman per Jam: Casual vs Registered (2011–2012)",
+                 fontsize=13, fontweight="bold")
+    ax.set_xlabel("Jam (00:00 - 23:00)", fontsize=11)
+    ax.set_ylabel("Rata-rata Peminjaman Per Jam", fontsize=11)
+    ax.set_xticks(range(0, 24))
+    ax.grid(True, linestyle="--", alpha=0.5)
+    ax.legend(title="Tipe Pengguna", fontsize=10)
     plt.tight_layout()
     st.pyplot(fig)
     plt.close(fig)
@@ -461,13 +474,14 @@ with tab_q2:
     st.markdown("#### Insight")
     show_bullets(INSIGHT_Q2)
 
-# Tab 3: Analisis lanjutan (Binning jam + RFM bulanan)
+# Tab 3: Analisis lanjutan (binning jam + RFM bulanan)
 with tab_adv:
     st.subheader("Analisis Lanjutan: Binning Waktu & RFM Bulanan")
     st.markdown(
         "**Tujuan:** *Binning* (clustering non-ML) mengelompokkan jam ke dalam tiga kategori berdasarkan aturan "
         "bisnis untuk melihat kapan permintaan paling tinggi. *RFM adaptif bulanan* merangkum jumlah hari "
-        "operasional (*Frequency*), total peminjaman (*Monetary*), dan rata-rata harian untuk melihat pola musiman."
+        "operasional (*Frequency*), total peminjaman (*Monetary*), dan rata-rata harian (*Recency_Avg_Daily*) "
+        "untuk melihat pola musiman."
     )
 
     time_summary = (
@@ -480,7 +494,7 @@ with tab_adv:
         palette=["#1E90FF", "#87CEEB", "#B0C4DE"][: len(time_summary)], legend=False, ax=ax,
     )
     for i, v in enumerate(time_summary["cnt"]):
-        ax.text(i, v + 3, f"{v:.0f}", ha="center", fontsize=10, fontweight="bold")
+        ax.text(i, v + 3, fmt1(v), ha="center", fontsize=10, fontweight="bold")
     ax.set_title("Rata-rata Peminjaman per Jam Berdasarkan Kategori Waktu", fontsize=12, fontweight="bold")
     ax.set_xlabel("Kategori Waktu", fontsize=10)
     ax.set_ylabel("Rata-rata Peminjaman per Jam", fontsize=10)
@@ -516,8 +530,7 @@ with tab_adv:
             monthly.style.format({
                 "Monetary_Total_Rentals": "{:,.0f}",
                 "Recency_Avg_Daily": "{:,.1f}",
-            }),
-            use_container_width=True,
+            })
         )
 
     st.markdown("#### Insight")
@@ -534,7 +547,7 @@ with tab_conc:
     st.success(CONCLUSION_ADV)
 
     st.subheader("Rekomendasi Action Item")
-    for i, rec in enumerate(RECOMMENDATIONS, start=1):
-        st.markdown(f"{i}. {rec}")
+    for rec in RECOMMENDATIONS:
+        st.markdown(f"- {rec}")
 
 st.caption("© Ilham Maulana • Proyek Analisis Data Dicoding • Bike Sharing Dataset")
