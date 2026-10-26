@@ -92,7 +92,7 @@ def fmt_hr(h: int) -> str:
     return f"{int(h):02d}:00"
 
 
-# Teks insight (sesuai notebook)
+# Insight
 Q1_TEXT = (
     "Bagaimana perbedaan rata-rata penyewaan sepeda harian (cnt) berdasarkan musim (season) dan kondisi cuaca "
     "(weathersit) sepanjang tahun 2011–2012, serta pada jam berapa (hr) puncak peminjaman terjadi pada hari kerja "
@@ -305,7 +305,7 @@ tab_data, tab_q1, tab_q2, tab_adv, tab_conc = st.tabs(
     ]
 )
 
-# Tab 0: Tahapan data
+# Tahapan data
 with tab_data:
     st.subheader("Ringkasan Tahapan Analisis Data")
     st.caption("Insight di bawah ini merupakan hasil dari notebook (seluruh periode 2011–2012).")
@@ -334,7 +334,7 @@ with tab_data:
         st.markdown("**Data per jam**")
         st.dataframe(hour_df.head(100))
 
-# Tab 1: Pertanyaan 1
+# Pertanyaan 1
 with tab_q1:
     st.subheader("Pertanyaan 1: Musim, Cuaca, dan Jam Puncak")
     st.markdown(Q1_TEXT)
@@ -420,7 +420,7 @@ with tab_q1:
     st.markdown("#### Insight")
     show_bullets(INSIGHT_Q1)
 
-# Tab 2: Pertanyaan 2
+# Pertanyaan 2
 with tab_q2:
     st.subheader("Pertanyaan 2: Pengguna Kasual vs Terdaftar")
     st.markdown(Q2_TEXT)
@@ -474,7 +474,7 @@ with tab_q2:
     st.markdown("#### Insight")
     show_bullets(INSIGHT_Q2)
 
-# Tab 3: Analisis lanjutan (binning jam + RFM bulanan)
+# Analisis lanjutan (binning jam + RFM bulanan)
 with tab_adv:
     st.subheader("Analisis Lanjutan: Binning Waktu & RFM Bulanan")
     st.markdown(
@@ -536,7 +536,7 @@ with tab_adv:
     st.markdown("#### Insight")
     show_bullets(INSIGHT_ADV)
 
-# Tab 4: Kesimpulan & rekomendasi
+# Kesimpulan & rekomendasi
 with tab_conc:
     st.subheader("Conclusion")
     st.markdown("**Kesimpulan Pertanyaan 1**")
